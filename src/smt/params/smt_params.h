@@ -92,6 +92,7 @@ struct smt_params : public preprocessor_params,
     unsigned         m_relevancy_lvl = 2;
     bool             m_relevancy_lemma = false;
     unsigned         m_random_seed = 0;
+    unsigned         m_magic_call = 0;
     double           m_random_var_freq = 0.01;
     double           m_inv_decay = 1.052;
     unsigned         m_clause_decay = 1;

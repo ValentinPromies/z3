@@ -336,16 +336,49 @@ public:
     T const* end() const { return e; }
 };
 
-class random_gen {
+class random_gen_orig {
     unsigned m_data;
 public:
-    random_gen(unsigned seed = 0):
+    random_gen_orig(unsigned seed = 0):
         m_data(seed) {
     }
 
     void set_seed(unsigned s) { m_data = s; }
 
     int operator()() {
+        return ((m_data = m_data * 214013L + 2531011L) >> 16) & 0x7fff; 
+    }
+
+    unsigned operator()(unsigned u) {
+        unsigned r = static_cast<unsigned>((*this)());
+        return r % u;
+    }
+    
+    static int max_value() {
+        return 0x7fff;
+    }
+};
+
+class random_gen {
+    unsigned m_data = 0;
+    unsigned m_calls = 0;
+    unsigned m_magic_call = 0;
+public:
+    random_gen(unsigned seed = 0):
+        m_data(seed) {
+    }
+    random_gen(unsigned seed, unsigned magic_call):
+        m_data(seed), m_magic_call(magic_call) {
+    }
+
+
+    void set_seed(unsigned s) { m_data = s; }
+
+    int operator()() {
+        if (m_magic_call && ++m_calls == m_magic_call) {
+            m_data = m_data * 214013L + 2531011L;
+            return (int)m_magic_call;
+        }
         return ((m_data = m_data * 214013L + 2531011L) >> 16) & 0x7fff; 
     }
 

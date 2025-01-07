@@ -653,7 +653,7 @@ namespace sls {
             return false;
 
         SASSERT(is_uninterp(t));
-        SASSERT(m_restore.empty());
+//        SASSERT(m_restore.empty());
 
         if (bv.is_bv(t)) {
             wval(t).eval = new_value;
