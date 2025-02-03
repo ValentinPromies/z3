@@ -171,6 +171,8 @@ namespace smt {
             //update_propagation_scope();
             return;
         }
+        if (ctx.m_stats.m_num_conflicts < m_conflict_gap)
+            return;
         m_after_resolve_decide_gap *= 2;
         if (!shared_clauses_are_true()) {
             update_propagation_scope();
@@ -221,7 +223,8 @@ namespace smt {
         if (m_parallel_mode || !m_smt_plugin)
             return;
 
-        if (ctx.m_stats.m_num_restarts >= m_restart_gap + 5) {                      
+        if (ctx.m_stats.m_num_restarts >= m_restart_gap + 5 &&
+            m_conflict_gap <= ctx.m_stats.m_num_conflicts) {                      
             m_restart_gap *= 2;
             m_smt_plugin->smt_units_to_sls();
             ++m_stats.m_num_restart_sls;
@@ -234,6 +237,7 @@ namespace smt {
 
     void theory_sls::bounded_run(unsigned num_steps) {       
         m_smt_plugin->bounded_run(num_steps);
+        m_conflict_gap = ctx.m_stats.m_num_conflicts + m_conflict_inc;        
         if (m_smt_plugin->result() == l_true) {
             m_smt_plugin->finalize(m_model, m_st);
             m_smt_plugin = nullptr;
@@ -243,6 +247,8 @@ namespace smt {
 
     final_check_status theory_sls::final_check_eh() {
         if (!m_smt_plugin)
+            return FC_DONE;
+        if (ctx.m_stats.m_num_conflicts < m_conflict_gap)
             return FC_DONE;
         ++m_after_resolve_decide_count;
         if (m_after_resolve_decide_gap > m_after_resolve_decide_count)

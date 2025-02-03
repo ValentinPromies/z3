@@ -61,6 +61,8 @@ namespace smt {
         bool m_checking = false;
         bool m_parallel_mode = true;
         unsigned m_restart_gap = 1;
+        unsigned m_conflict_gap = 100;
+        unsigned m_conflict_inc = 200;
         unsigned m_restart_ls_steps = 100000;
         unsigned m_restart_ls_steps_inc = 10000;
         unsigned m_restart_ls_steps_max = 300000;

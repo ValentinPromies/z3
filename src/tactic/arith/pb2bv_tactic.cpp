@@ -53,6 +53,7 @@ public:
     
         void throw_non_pb(expr * n) {
             TRACE("pb2bv", tout << "Not pseudo-Boolean: " << mk_ismt2_pp(n, m) << "\n";);
+            verbose_stream() << "not pb " << mk_pp(n, m) << "\n";
             throw non_pb(n);
         }
     
@@ -63,6 +64,10 @@ public:
         void operator()(app * n) {            
             family_id fid = n->get_family_id();
             if (fid == m.get_basic_family_id()) {
+                expr* c = nullptr, * th = nullptr, * el = nullptr;
+                rational r;
+                if (m.is_ite(n, c, th, el) && m_util.is_numeral(th) && m_util.is_numeral(el, r) && r.is_zero())
+                    return;
                 // all basic family ops (but term-ite and distinct) are OK
                 if (m.is_term_ite(n) || m.is_distinct(n))
                     throw_non_pb(n);
@@ -340,7 +345,10 @@ private:
             if (r != nullptr)
                 return r;
 
-            r = m.mk_fresh_const(nullptr, m.mk_bool_sort());
+            if (m.is_bool(x))
+                r = x;
+            else 
+                r = m.mk_fresh_const(nullptr, m.mk_bool_sort());
             expr * not_r = m.mk_not(r);
             m_const2bit.insert(fd, r);
             m_not_const2bit.insert(fd, not_r);
@@ -745,11 +753,25 @@ private:
             unsigned sz = to_app(lhs)->get_num_args();
             expr * const * ms = to_app(lhs)->get_args();
             expr * a, * x;
+
+            auto is_ite = [&](expr* e, rational& r) {
+                expr *cnd = nullptr, * th = nullptr, * el = nullptr;
+                return m.is_ite(e, cnd, th, el) &&
+                    m_arith_util.is_numeral(el, r) &&
+                    r.is_zero() &&
+                    m_arith_util.is_numeral(th, r);;
+                };
+
             for (unsigned i = 0; i < sz; i++) {
-                expr * m = ms[i];
-                if (is_uninterp_const(m))
+                expr* e = ms[i];
+                    rational r;
+                if (is_uninterp_const(e))
                     continue;
-                if (m_arith_util.is_mul(m, a, x) && m_arith_util.is_numeral(a) && is_uninterp_const(x))
+                if (m_arith_util.is_mul(e, a, x) && m_arith_util.is_numeral(a) && is_uninterp_const(x))
+                    continue;
+                if (is_ite(e, r))
+                    continue;
+                if (m_arith_util.is_mul(e, a, x) && m_arith_util.is_numeral(a) && is_ite(x, r))
                     continue;
                 throw_non_pb(t);
             }            
@@ -760,12 +782,14 @@ private:
             numeral    m_c;
             m_c = c;
             for (unsigned i = 0; i < sz; i++) {
-                expr * m = ms[i];                
-                if (is_uninterp_const(m)) {
-                    add_bounds_dependencies(m);
-                    m_p.push_back(monomial(lit(m)));
+                expr * e = ms[i];   
+                expr* cnd = nullptr, * th = nullptr, * el = nullptr;
+                rational r1, r2;
+                if (is_uninterp_const(e)) {
+                    add_bounds_dependencies(e);
+                    m_p.push_back(monomial(lit(e)));
                 }
-                else if (m_arith_util.is_mul(m, a, x) && m_arith_util.is_numeral(a, a_val)) {
+                else if (m_arith_util.is_mul(e, a, x) && m_arith_util.is_numeral(a, a_val) && is_uninterp_const(x)) {
                     add_bounds_dependencies(x);
                     if (a_val.is_neg()) {
                         a_val.neg(); 
@@ -776,6 +800,25 @@ private:
                     else {
                         m_p.push_back(monomial(a_val, lit(x)));
                     }
+                }
+                else if (m_arith_util.is_mul(e, a, x) && m_arith_util.is_numeral(a, a_val) && is_ite(x, r1)) {
+                    a_val *= r1;
+                    if (a_val.is_neg()) {
+                        a_val.neg();
+                        m_c += a_val;
+                        m_p.push_back(monomial(a_val, lit(x, true)));
+                    }
+                    else
+                        m_p.push_back(monomial(a_val, lit(x)));
+                }
+                else if (is_ite(e, r1)) {
+                    if (r1.is_neg()) {
+                        r1.neg();
+                        m_c += r1;
+                        m_p.push_back(monomial(r1, lit(cnd, true)));
+                    }
+                    else
+                        m_p.push_back(monomial(r1, lit(cnd)));
                 }
                 else {
                     UNREACHABLE();
@@ -923,6 +966,7 @@ private:
                 quick_pb_check(g);
             }
             catch (non_pb& p) {
+                verbose_stream() << mk_pp(p.e, m) << "\n";
                 throw_tactic(p.e);
             }
                         
@@ -954,6 +998,7 @@ private:
                 }                
             }
             catch (non_pb& p) {
+                verbose_stream() << mk_pp(p.e, m) << "\n";
                 throw_tactic(p.e);
             }
 
