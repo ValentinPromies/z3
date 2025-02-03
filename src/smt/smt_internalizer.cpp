@@ -1399,7 +1399,8 @@ namespace smt {
             }            
             break;
         }
-        case CLS_TH_LEMMA:
+        case CLS_TH_LEMMA_RELEVANT:
+        case CLS_TH_LEMMA_LEARNED:
             dump_lemma(num_lits, lits);
             if (!simplify_aux_lemma_literals(num_lits, lits)) {
                 if (j && !j->in_region()) {
@@ -1474,7 +1475,7 @@ namespace smt {
                     cls->swap_lits(1, w2_idx);
                 }
                 else {
-                    SASSERT(k == CLS_TH_LEMMA);
+                    SASSERT(is_th_lemma(k));
                     int w1_idx = select_watch_lit(cls, 0);
                     cls->swap_lits(0, w1_idx);
                     int w2_idx = select_watch_lit(cls, 1);
@@ -1487,14 +1488,14 @@ namespace smt {
                 add_watch_literal(cls, 1);
                 if (get_assignment(cls->get_literal(0)) == l_false) {
                     set_conflict(b_justification(cls));
-                    if (k == CLS_TH_LEMMA && m_scope_lvl > m_base_lvl) {
+                    if (is_th_lemma(k) && m_scope_lvl > m_base_lvl) {
                         reinit     = true;
                         iscope_lvl = m_scope_lvl;
                     }
                 }
                 else if (get_assignment(cls->get_literal(1)) == l_false) {
                     assign(cls->get_literal(0), b_justification(cls));
-                    if (k == CLS_TH_LEMMA && m_scope_lvl > m_base_lvl) {
+                    if (is_th_lemma(k) && m_scope_lvl > m_base_lvl) {
                         reinit     = true;
                         iscope_lvl = m_scope_lvl;
                     }

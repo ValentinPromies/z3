@@ -936,7 +936,7 @@ namespace smt {
             if (proofs_enabled()) {
                 js = alloc(theory_lemma_justification, get_id(), ctx, lits.size(), lits.data());
             }
-            ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA, nullptr);
+            ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
         }
         SASSERT(ctx.inconsistent());
     }
@@ -1518,7 +1518,7 @@ namespace smt {
         if (proofs_enabled()) {                                         
             js = alloc(theory_lemma_justification, get_id(), ctx, lits.size(), lits.data());
         }
-        ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA, nullptr);
+        ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
     }
 
 

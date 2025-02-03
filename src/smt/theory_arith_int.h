@@ -677,7 +677,7 @@ namespace smt {
                 ante.eqs().size(), ante.eqs().data(), ante, l));
 
         if (l == false_literal) 
-            ctx.mk_clause(0, nullptr, js, CLS_TH_LEMMA, nullptr);
+            ctx.mk_clause(0, nullptr, js, CLS_TH_LEMMA_LEARNED, nullptr);
         else 
             ctx.assign(l, js);
         return true;

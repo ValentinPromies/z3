@@ -664,7 +664,7 @@ void theory_diff_logic<Ext>::new_edge(dl_var src, dl_var dst, unsigned num_edges
                    lits.size(), lits.data(), 
                    params.size(), params.data());
     }
-    ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA, nullptr);
+    ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
 
 #if 0
     TRACE("arith",

@@ -2321,7 +2321,7 @@ namespace smt {
                         });
                         literal l(v, sign);
                         cls->set_literal(j, l);
-                        if (cls->get_kind() == CLS_TH_LEMMA)
+                        if (cls->get_kind() == CLS_TH_LEMMA_RELEVANT)
                             mark_as_relevant(l);
                     }
                     SASSERT(ilvl <= m_scope_lvl);
@@ -2351,7 +2351,7 @@ namespace smt {
                     SASSERT(!cls->reinternalize_atoms());
                     literal l1 = cls->get_literal(0);
                     literal l2 = cls->get_literal(1);
-                    if (cls->get_kind() == CLS_TH_LEMMA) {
+                    if (cls->get_kind() == CLS_TH_LEMMA_RELEVANT) {
                         mark_as_relevant(l1);
                         mark_as_relevant(l2);
                     }

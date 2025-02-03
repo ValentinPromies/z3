@@ -971,7 +971,7 @@ namespace smt {
         }
 
         void mk_th_lemma(theory_id tid, unsigned num_lits, literal * lits, unsigned num_params = 0, parameter * params = nullptr) {
-            mk_th_clause(tid, num_lits, lits, num_params, params, CLS_TH_LEMMA);
+            mk_th_clause(tid, num_lits, lits, num_params, params, CLS_TH_LEMMA_RELEVANT);
         }
 
         void mk_th_lemma(theory_id tid, literal_vector const& ls, unsigned num_params = 0, parameter * params = nullptr) {

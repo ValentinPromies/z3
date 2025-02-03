@@ -2399,7 +2399,7 @@ public:
             VERIFY(validate_assign(lit));
         if (params().m_arith_dump_lemmas)
             dump_assign_lemma(lit);
-        if (false && core.size() < small_lemma_size() && eqs.empty()) {
+        if (core.size() < small_lemma_size() && eqs.empty()) {
             m_core2.reset();
             for (auto const& c : core) {
                 m_core2.push_back(~c);
@@ -2410,7 +2410,7 @@ public:
                 js = alloc(theory_lemma_justification, get_id(), ctx(), m_core2.size(), m_core2.data(),
                            ps.size(), ps.data());
             }
-            ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA, nullptr);
+            ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
         }
         else {
             ctx().assign(

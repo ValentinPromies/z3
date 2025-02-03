@@ -3008,7 +3008,7 @@ namespace smt {
             if (proofs_enabled()) 
                 js = alloc(theory_lemma_justification, get_id(), ctx, lits.size(), lits.data(),
                            ante.num_params(), ante.params("assign-bounds"));
-            ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA, nullptr);
+            ctx.mk_clause(lits.size(), lits.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
         }
         else {
             ctx.assign(l, ctx.mk_justification(

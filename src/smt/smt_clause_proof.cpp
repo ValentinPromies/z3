@@ -51,7 +51,8 @@ namespace smt {
             return status::th_assumption;
         case CLS_LEARNED:
             return status::lemma;
-        case CLS_TH_LEMMA:
+        case CLS_TH_LEMMA_LEARNED:
+        case CLS_TH_LEMMA_RELEVANT:
             return status::th_lemma;
         default:
             UNREACHABLE();

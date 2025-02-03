@@ -41,11 +41,13 @@ namespace smt {
         CLS_AUX,         // an input assumption
         CLS_TH_AXIOM,    // a theory axiom
         CLS_LEARNED,     // learned through conflict resolution
-        CLS_TH_LEMMA     // a theory lemma
+        CLS_TH_LEMMA_RELEVANT,     // a theory lemma, atoms are reinitialzed as relevant for theory propagation
+        CLS_TH_LEMMA_LEARNED       // a theory lemma, lemma is replayed for Boolean propagation.
     };
 
     inline bool is_axiom(clause_kind k) { return k == CLS_AUX || k == CLS_TH_AXIOM; }
-    inline bool is_lemma(clause_kind k) { return k == CLS_LEARNED || k == CLS_TH_LEMMA; }
+    inline bool is_lemma(clause_kind k) { return k == CLS_LEARNED || k == CLS_TH_LEMMA_RELEVANT || k == CLS_TH_LEMMA_LEARNED; }
+    inline bool is_th_lemma(clause_kind k) { return k == CLS_TH_LEMMA_RELEVANT || k == CLS_TH_LEMMA_LEARNED; }
     
     /**
        \brief A SMT clause.
@@ -54,8 +56,8 @@ namespace smt {
     */
     class clause {
         unsigned m_num_literals;
-        unsigned m_capacity:24;           //!< some of the clause literals can be simplified and removed, this field contains the original number of literals (used for GC).
-        unsigned m_kind:2;                //!< kind
+        unsigned m_capacity:23;           //!< some of the clause literals can be simplified and removed, this field contains the original number of literals (used for GC).
+        unsigned m_kind:3;                //!< kind
         unsigned m_reinit:1;              //!< true if the clause is in the reinit stack (only for learned clauses and aux_lemmas)
         unsigned m_reinternalize_atoms:1; //!< true if atoms must be reinitialized during reinitialization
         unsigned m_has_atoms:1;           //!< true if the clause has memory space for storing atoms.
@@ -169,7 +171,7 @@ namespace smt {
         }
 
         bool is_th_lemma() const {
-            return get_kind() == CLS_TH_LEMMA;
+            return smt::is_th_lemma(get_kind());
         }
 
 
