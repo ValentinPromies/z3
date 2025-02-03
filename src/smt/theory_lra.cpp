@@ -2410,7 +2410,7 @@ public:
                 js = alloc(theory_lemma_justification, get_id(), ctx(), m_core2.size(), m_core2.data(),
                            ps.size(), ps.data());
             }
-            ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
+            ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA_RELEVANT, nullptr);
         }
         else {
             ctx().assign(
