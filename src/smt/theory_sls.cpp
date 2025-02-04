@@ -38,7 +38,7 @@ namespace smt {
     }
     
     void theory_sls::set_value(expr* t, expr* v) {
-        ctx.user_propagate_initialize_value(t, v);
+        ctx.set_sls_value(t, v);
     }
     
     void theory_sls::force_phase(sat::literal lit) {

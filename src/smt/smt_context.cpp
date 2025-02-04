@@ -2927,6 +2927,22 @@ namespace smt {
         push_trail(push_back_vector(m_values));
     }
 
+    void context::set_sls_value(expr* var, expr* value) {
+        expr_ref _var(var, m);
+        expr_ref _valueu(value, m);
+        if (!e_internalized(var))
+            return;
+        enode* n = get_enode(var);
+        theory_var_list* l = n->get_th_var_list();
+        while (l) {
+            theory_id tid = l->get_id();
+            auto* p = m_theories.get_plugin(tid);
+            if (p)
+                p->initialize_value(var, value);
+            l = l->get_next();
+        }
+    }
+
     void context::initialize_value(expr* var, expr* value) {
         IF_VERBOSE(10, verbose_stream() << "initialize " << mk_pp(var, m) << " := " << mk_pp(value, m) << "\n");
         sort* s = var->get_sort();

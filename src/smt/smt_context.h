@@ -1812,6 +1812,8 @@ namespace smt {
 
         void user_propagate_initialize_value(expr* var, expr* value);
 
+        void set_sls_value(expr* var, expr* value);
+
         bool watches_fixed(enode* n) const;
 
         bool has_split_candidate(bool_var& var, bool& is_pos);

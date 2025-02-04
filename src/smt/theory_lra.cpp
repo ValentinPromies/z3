@@ -2411,6 +2411,7 @@ public:
                            ps.size(), ps.data());
             }
             ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA_RELEVANT, nullptr);
+            ctx().mk_clause(m_core2.size(), m_core2.data(), js, CLS_TH_LEMMA_LEARNED, nullptr);
         }
         else {
             ctx().assign(
@@ -2465,12 +2466,12 @@ public:
         bool is_int;
         VERIFY(a.is_band(n, sz, _x, _y) || a.is_shl(n, sz, _x, _y) || a.is_ashr(n, sz, _x, _y) || a.is_lshr(n, sz, _x, _y));
         if (!get_value(ctx().get_enode(_x), vx) || !get_value(ctx().get_enode(_y), vy) || !get_value(ctx().get_enode(n), vn)) {
-            IF_VERBOSE(2, verbose_stream() << "could not get value of " << mk_pp(n, m) << "\n");
+            IF_VERBOSE(4, verbose_stream() << "could not get value of " << mk_pp(n, m) << "\n");
             found_unsupported(n);
             return true;
         }
         if (!a.is_numeral(vn, valn, is_int) || !is_int || !a.is_numeral(vx, valx, is_int) || !is_int || !a.is_numeral(vy, valy, is_int) || !is_int) {
-            IF_VERBOSE(2, verbose_stream() << "could not get value of " << mk_pp(n, m) << "\n");
+            IF_VERBOSE(4, verbose_stream() << "could not get value of " << mk_pp(n, m) << "\n");
             found_unsupported(n);
             return true;
         }
@@ -2489,7 +2490,7 @@ public:
         };
 
         if (a.is_band(n)) {
-            IF_VERBOSE(2, verbose_stream() << "band: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << "&" << valy << "\n");
+            IF_VERBOSE(4, verbose_stream() << "band: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << "&" << valy << "\n");
             for (unsigned i = 0; i < sz; ++i) {
                 bool xb = valx.get_bit(i);
                 bool yb = valy.get_bit(i);
@@ -2514,7 +2515,7 @@ public:
             if (ctx().get_assignment(eq) == l_true)
                 return true;            
             ctx().mk_th_axiom(get_id(), ~th.mk_eq(y, a.mk_int(k), false), eq);
-            IF_VERBOSE(2, verbose_stream() << "shl: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << " << " << valy << "\n");
+            IF_VERBOSE(4, verbose_stream() << "shl: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << " << " << valy << "\n");
             return false;
         }
         if (a.is_lshr(n)) {
@@ -2526,7 +2527,7 @@ public:
             if (ctx().get_assignment(eq) == l_true)
                 return true;            
             ctx().mk_th_axiom(get_id(), ~th.mk_eq(y, a.mk_int(k), false), eq);
-            IF_VERBOSE(2, verbose_stream() << "lshr: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << " >>l " << valy << "\n");
+            IF_VERBOSE(4, verbose_stream() << "lshr: " << mk_bounded_pp(n, m) << " " << valn << " := " << valx << " >>l " << valy << "\n");
             return false;
         }
         if (a.is_ashr(n)) {
@@ -3555,28 +3556,19 @@ public:
     }
 
     bool get_value(enode* n, rational& val) {
-        theory_var v = n->get_th_var(get_id());            
-        if (!is_registered_var(v)) return false;
-        lpvar vi = get_lpvar(v);
-        if (lp().has_value(vi, val)) {
-            TRACE("arith", tout << expr_ref(n->get_expr(), m) << " := " << val << "\n";);
-            if (is_int(n) && !val.is_int()) return false;
-            return true;
-        }
-        else {
+        theory_var v = n->get_th_var(get_id());    
+        if (!is_registered_var(v)) 
             return false;
-        }
+        lpvar vi = get_lpvar(v);
+        return lp().has_value(vi, val) && (!is_int(n) || val.is_int());
     }    
 
     bool get_value(enode* n, expr_ref& r) {
         rational val;
-        if (get_value(n, val)) {
-            r = a.mk_numeral(val, is_int(n));
-            return true;
-        }
-        else {
+        if (!get_value(n, val))
             return false;
-        }
+        r = a.mk_numeral(val, is_int(n));
+        return true;
     }    
 
     bool include_func_interp(func_decl* f) {

@@ -66,6 +66,8 @@ namespace smt {
         model_value_proc* mk_value(enode* n, model_generator& m) override;
         void new_eq_eh(theory_var v1, theory_var v2) override {}
         void new_diseq_eh(theory_var v1, theory_var v2) override {}
+        void initialize_value(expr* var, expr* value) override;
+        bool get_value(enode* n, expr_ref& r) override;
 
     };
 

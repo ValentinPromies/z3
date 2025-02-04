@@ -187,5 +187,33 @@ namespace smt {
         return alloc(expr_wrapper_proc, m_factory->mk_num_value(r, bv.get_bv_size(e)));
     }
 
+    void theory_intblast::initialize_value(expr* var, expr* value) {
+        auto avar = expr_ref(m_translator.translated(var), m);
+        if (!avar)
+            return;
+        rational r;
+        if (!bv.is_numeral(value, r))
+            return;
+        auto aval = expr_ref(a.mk_numeral(r, true), m);
+        ctx.set_sls_value(avar, aval);
+    }
+
+    bool theory_intblast::get_value(enode* n, expr_ref& r) {
+        auto avar = expr_ref(m_translator.translated(n->get_expr()), m);
+        if (!avar)
+            return false;
+        if (!ctx.e_internalized(avar))
+            return false;
+        enode* n2 = ctx.get_enode(avar);
+        auto has_value = ctx.get_value(n2, r);
+        if (!has_value)
+            return false;
+        rational val;
+        if (!a.is_numeral(r, val))
+            return false;
+        r = bv.mk_numeral(val, bv.get_bv_size(n->get_expr()));
+        return true;
+    }
+
 
 }
