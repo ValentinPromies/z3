@@ -993,6 +993,7 @@ public:
             return;
         }
         lp().move_lpvar_to_value(get_lpvar(var), r);
+        make_feasible();
     }
 
     void new_eq_eh(theory_var v1, theory_var v2) {

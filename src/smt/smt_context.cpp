@@ -2930,8 +2930,7 @@ namespace smt {
     void context::set_sls_value(expr* var, expr* value) {
         expr_ref _var(var, m);
         expr_ref _valueu(value, m);
-#if 0
-// temporary disabled
+#if 1
         if (!e_internalized(var))
             return;
         enode* n = get_enode(var);
