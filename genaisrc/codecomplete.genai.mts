@@ -7,7 +7,7 @@ script({
 import * as fs from 'fs';
 import * as path from 'path';
 
-const directoryPath = "code_slices";
+
 
 async function invokeLLMCompletion(code, prefix) {
 
@@ -84,8 +84,9 @@ async function invokeLLMAnalyzer(code, inputFilename, funcName) {
   
   }
   
-
-const code_slice_files = fs.readdirSync(directoryPath);
+const input_directory = "code_slices";
+const output_directory = "code_slices_analyzed";
+const code_slice_files = fs.readdirSync(input_directory);
 
 let count = 0;
 for (const file of code_slice_files) {
@@ -102,13 +103,13 @@ for (const file of code_slice_files) {
         const [_, prefix, fileName, funcName] = match;
 
 
-        const filePath = path.join(directoryPath, file);
+        const filePath = path.join(input_directory, file);
         const content = await workspace.readText(filePath);
         const answer1 = await invokeLLMCompletion(content.content, fileName);
         const answer2 = await invokeLLMAnalyzer(answer1, fileName, funcName);
+        const outputFilePath = path.join(output_directory, fileName + "_" + funcName + ".md");
+        await workspace.writeText(outputFilePath, answer2);
         ++count;
-        if (count > 3)
-            break;
     }
 }
 
