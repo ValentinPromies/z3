@@ -8,6 +8,21 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 
+async function runCodePrompt(role, message, code) {
+    const answer = await runPrompt(
+        (_) => {
+            _.def("ROLE", role);
+            _.def("REQUEST", message);
+            _.def("CODE", code);   
+            _.$`Your role is <ROLE>.
+            The request is given by <REQUEST> 
+            original code snippet:
+            <CODE>.`
+        }
+    )
+    console.log(answer.text);
+    return answer.text;
+}
 
 async function invokeLLMCompletion(code, prefix) {
 
@@ -22,19 +37,7 @@ async function invokeLLMCompletion(code, prefix) {
         successful compilation and execution. Avoid unnecessary code additions. 
         Ensure the final code is robust, secure, and adheres to best practices.`;
 
-    const answer = await runPrompt(
-        (_) => {
-            _.def("ROLE", role);
-            _.def("REQUEST", userMessage);
-            _.def("CODE", code);   
-            _.$`Your role is ROLE.
-            The request is given by REQUEST 
-            original code snippet:
-            CODE.`
-        }
-    )
-    console.log(answer.text);
-    return answer.text;
+    return runCodePrompt(role, userMessage, code);
 }
 
 async function invokeLLMAnalyzer(code, inputFilename, funcName) {
@@ -66,50 +69,81 @@ async function invokeLLMAnalyzer(code, inputFilename, funcName) {
        - Explanation of optimizations and their expected benefits.
 
     4. **Additional Insights or Best Practices:**
-       - Suggestions to further enhance the code's quality and maintainability.`
+       - Suggestions to further enhance the code's quality and maintainability.`;
 
-       const answer = await runPrompt(
+    return runCodePrompt(role, userMessage, code);
+  }
+
+async function createGitUpdateRequest(src_directory : string, filename : string, modifiedCode : string) {
+    // extract relative path from filename after slice_directory, extract function and source file name.
+    // Relative path: code_slices\ast\sls\orig_sls_smt_solver.cpp_updt_params.cpp  file name: orig_sls_smt.cpp
+    const regex = /code_slices\\(.*)\\([^_]*)_(.*)\.cpp_(.*)\.cpp/;
+    const match = filename.match(regex);
+    if (!match) {
+        console.log(`Filename does not match expected pattern: ${filename}`);
+        return "";
+    }
+    const [_, relative_path, prefix, fileName, funcName] = match;
+
+    console.log(`Relative path: ${relative_path}  file name: ${fileName}.cpp`);
+
+    const srcFilePath = path.join(src_directory, relative_path, fileName + ".cpp");
+    const srcFileContent = await workspace.readText(srcFilePath);
+
+    let role = 
+    `You are a highly experienced compiler engineer with over 20 years of expertise, 
+    specializing in C and C++ programming. Your deep knowledge of best coding practices 
+    and software engineering principles enables you to produce robust, efficient, and 
+    maintainable code in any scenario.`;
+
+    const answer = await runPrompt(
         (_) => {
             _.def("ROLE", role);
-            _.def("REQUEST", userMessage);
-            _.def("CODE", code);   
-            _.$`Your role is ROLE.
-            The request is given by REQUEST 
-            original code snippet:
-            CODE.`
+            _.def("SOURCE", srcFileContent);   
+            _.def("REVIEW", modifiedCode);
+            _.def("FUNCTION", funcName);
+            _.$`Your role is <ROLE>.
+                Please create a well-formed git patch based on the source code given in
+                <SOURCE> 
+                A code analysis is for the method or function <FUNCTION>.
+                The analysis is he following:
+                <REVIEW>`
         }
     )
     console.log(answer.text);
     return answer.text;
-  
-  }
+}
   
 const input_directory = "code_slices";
 const output_directory = "code_slices_analyzed";
-const code_slice_files = fs.readdirSync(input_directory);
+const src_directory = "src";
+const code_slice_files = await workspace.findFiles("code_slices/**/*.cpp");
 
 let count = 0;
 for (const file of code_slice_files) {
-    if (path.extname(file) === '.cpp') {
-        console.log(`Processing file: ${file}`);
+    if (path.extname(file.filename) === '.cpp') {
+        console.log(`Processing file: ${file.filename}`);
 
         const regex = /(.*)_(.*)\.cpp_(.*)\.cpp/;
-        const match = file.match(regex);
+        const match = file.filename.match(regex);
 
         if (!match) {
-            console.log(`Filename does not match expected pattern: ${file}`);
+            console.log(`Filename does not match expected pattern: ${file.filename}`);
             continue;
         }
         const [_, prefix, fileName, funcName] = match;
 
-
-        const filePath = path.join(input_directory, file);
-        const content = await workspace.readText(filePath);
-        const answer1 = await invokeLLMCompletion(content.content, fileName);
+        const content = file.content;
+        const answer1 = await invokeLLMCompletion(content, fileName);
         const answer2 = await invokeLLMAnalyzer(answer1, fileName, funcName);
         const outputFilePath = path.join(output_directory, fileName + "_" + funcName + ".md");
         await workspace.writeText(outputFilePath, answer2);
+        const answer3 = await createGitUpdateRequest(src_directory, file.filename, answer2);
+        const outputFilePath2 = path.join(output_directory, fileName + "_" + funcName + "_git.md");
+        await workspace.writeText(outputFilePath2, answer3);
         ++count;
+        if (count > 3)
+            break;
     }
 }
 
