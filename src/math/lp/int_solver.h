@@ -46,6 +46,7 @@ class int_solver {
     lar_core_solver&    lrac;
     imp*                m_imp; 
     vector<equality>       m_equalities;
+    uint_set            m_cut_vars;
     bool get_freedom_interval_for_column(unsigned j, bool & inf_l, impq & l, bool & inf_u, impq & u, mpq & m);
     bool is_boxed(unsigned j) const;
     bool is_free(unsigned j) const;
@@ -86,6 +87,8 @@ public:
     u_dependency* column_upper_bound_constraint(unsigned j) const;
     u_dependency* column_lower_bound_constraint(unsigned j) const;
     bool current_solution_is_inf_on_cut() const;
+    void add_cut_var(unsigned j);
+    bool is_cut_var(unsigned j) const;
 
     bool shift_var(unsigned j, unsigned range);
     std::ostream&  display_row_info(std::ostream & out, unsigned row_index) const;

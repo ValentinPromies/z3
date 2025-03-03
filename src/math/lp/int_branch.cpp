@@ -74,6 +74,8 @@ int int_branch::find_inf_int_base_column() {
         j = lra.r_basis()[k];
         if (!lia.column_is_int_inf(j))
             continue;
+        if (lia.is_cut_var(j))
+            continue;
         usage = lra.usage_in_terms(j);
         if (lia.is_boxed(j) &&  (range = lcs.m_r_upper_bounds()[j].x - lcs.m_r_lower_bounds()[j].x - rational(2*usage)) <= small_value) {
             result = j;

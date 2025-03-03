@@ -323,7 +323,7 @@ public:
         
         m_dep = nullptr;
         for (auto c : *m_ex) 
-         	m_dep = lia.lra.join_deps(lia.lra.dep_manager().mk_leaf(c.ci()), m_dep);
+            m_dep = lia.lra.join_deps(lia.lra.dep_manager().mk_leaf(c.ci()), m_dep);
 
         TRACE("gomory_cut_detail", dump_cut_and_constraints_as_smt_lemma(tout);
               lia.lra.display(tout));
@@ -353,6 +353,9 @@ public:
 		// has to hold for the row to be eligible for Gomory cut:
         // 1) c is integral and x integral varible with an integral value
         // 2) the value of x is at a bound and has no infinitesimals.
+
+        if (lia.is_cut_var(k))
+            return false;
 
         
         unsigned j;
@@ -491,6 +494,7 @@ public:
         };
         auto add_cut = [&](const lar_term& t, const mpq& k, u_dependency * dep) {
             lp::lpvar j = lra.add_term(t.coeffs_as_vector(), UINT_MAX);
+            lia.add_cut_var(j);
             lra.update_column_type_and_bound(j, lp::lconstraint_kind::GE,  k, dep); 
         };
         auto _check_feasible = [&](void) {

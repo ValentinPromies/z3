@@ -584,6 +584,22 @@ namespace lp {
         return lra.column_count();
     }
 
+    void int_solver::add_cut_var(unsigned j) {
+        struct insert : public trail {
+            uint_set& s;
+            unsigned j;
+            insert(uint_set& s, unsigned j): s(s), j(j) {}
+            void undo() override { s.remove(j); }            
+        };
+        m_cut_vars.insert(j);
+        lra.trail().push(insert(m_cut_vars, j));
+    }
+    
+    bool int_solver::is_cut_var(unsigned j) const {
+        return m_cut_vars.contains(j);
+    }
+
+
 
     static void set_lower(impq & l, bool & inf_l, impq const & v ) {
         if (inf_l || v > l) {
