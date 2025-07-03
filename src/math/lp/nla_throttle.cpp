@@ -197,6 +197,47 @@ bool nla_throttle::insert_new_impl(const signature& sig) {
         // Check if this lemma should be permanently banned
         if (should_permanently_ban(sig, k)) {
             m_permanently_forbidden.insert(sig);
+            m_stats.m_nla_permanently_banned_lemmas++;
+            
+            // Update specific lemma type permanent ban statistics
+            switch (k) {
+                case ORDER_LEMMA:
+                    m_stats.m_nla_permanently_banned_order_lemmas++;
+                    break;
+                case BINOMIAL_SIGN_LEMMA:
+                    m_stats.m_nla_permanently_banned_binomial_sign_lemmas++;
+                    break;
+                case MONOTONE_LEMMA:
+                    m_stats.m_nla_permanently_banned_monotone_lemmas++;
+                    break;
+                case TANGENT_LEMMA:
+                    m_stats.m_nla_permanently_banned_tangent_lemmas++;
+                    break;
+                case BASIC_SIGN_LEMMA:
+                    m_stats.m_nla_permanently_banned_basic_sign_lemmas++;
+                    break;
+                case POWERS_LEMMA:
+                    m_stats.m_nla_permanently_banned_powers_lemmas++;
+                    break;
+                case DIVISION_LEMMA:
+                    m_stats.m_nla_permanently_banned_division_lemmas++;
+                    break;
+                case GROBNER_LEMMA:
+                    m_stats.m_nla_permanently_banned_grobner_lemmas++;
+                    break;
+                case HORNER_LEMMA:
+                    m_stats.m_nla_permanently_banned_horner_lemmas++;
+                    break;
+                case FACTOR_ZERO_LEMMA:
+                    m_stats.m_nla_permanently_banned_factor_zero_lemmas++;
+                    break;
+                case FACTOR_NEUTRAL_LEMMA:
+                    m_stats.m_nla_permanently_banned_factor_neutral_lemmas++;
+                    break;
+                default:
+                    TRACE(nla_throttle, tout << "Unexpected throttle kind in permanent ban: " << static_cast<int>(k) << "\n";);
+            }
+            
             TRACE(nla_throttle, 
                   tout << "banned lemma for life, kind=" << static_cast<int>(k) 
                        << " after " << count << " throttles\n";);

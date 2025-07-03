@@ -149,6 +149,18 @@ struct statistics {
     unsigned m_nla_throttled_horner_lemmas = 0;
     unsigned m_nla_throttled_factor_zero_lemmas = 0;
     unsigned m_nla_throttled_factor_neutral_lemmas = 0;
+    unsigned m_nla_permanently_banned_lemmas = 0;
+    unsigned m_nla_permanently_banned_order_lemmas = 0;
+    unsigned m_nla_permanently_banned_binomial_sign_lemmas = 0;
+    unsigned m_nla_permanently_banned_monotone_lemmas = 0;
+    unsigned m_nla_permanently_banned_tangent_lemmas = 0;
+    unsigned m_nla_permanently_banned_basic_sign_lemmas = 0;
+    unsigned m_nla_permanently_banned_powers_lemmas = 0;
+    unsigned m_nla_permanently_banned_division_lemmas = 0;
+    unsigned m_nla_permanently_banned_grobner_lemmas = 0;
+    unsigned m_nla_permanently_banned_horner_lemmas = 0;
+    unsigned m_nla_permanently_banned_factor_zero_lemmas = 0;
+    unsigned m_nla_permanently_banned_factor_neutral_lemmas = 0;
     ::statistics m_st = {};
 
     void reset() {
@@ -173,6 +185,18 @@ struct statistics {
         st.update("arith-nla-throttled-horner-lemmas", m_nla_throttled_horner_lemmas);
         st.update("arith-nla-throttled-factor-zero-lemmas", m_nla_throttled_factor_zero_lemmas);
         st.update("arith-nla-throttled-factor-neutral-lemmas", m_nla_throttled_factor_neutral_lemmas);
+        st.update("arith-nla-permanently-banned-lemmas", m_nla_permanently_banned_lemmas);
+        st.update("arith-nla-permanently-banned-order-lemmas", m_nla_permanently_banned_order_lemmas);
+        st.update("arith-nla-permanently-banned-binomial-sign-lemmas", m_nla_permanently_banned_binomial_sign_lemmas);
+        st.update("arith-nla-permanently-banned-monotone-lemmas", m_nla_permanently_banned_monotone_lemmas);
+        st.update("arith-nla-permanently-banned-tangent-lemmas", m_nla_permanently_banned_tangent_lemmas);
+        st.update("arith-nla-permanently-banned-basic-sign-lemmas", m_nla_permanently_banned_basic_sign_lemmas);
+        st.update("arith-nla-permanently-banned-powers-lemmas", m_nla_permanently_banned_powers_lemmas);
+        st.update("arith-nla-permanently-banned-division-lemmas", m_nla_permanently_banned_division_lemmas);
+        st.update("arith-nla-permanently-banned-grobner-lemmas", m_nla_permanently_banned_grobner_lemmas);
+        st.update("arith-nla-permanently-banned-horner-lemmas", m_nla_permanently_banned_horner_lemmas);
+        st.update("arith-nla-permanently-banned-factor-zero-lemmas", m_nla_permanently_banned_factor_zero_lemmas);
+        st.update("arith-nla-permanently-banned-factor-neutral-lemmas", m_nla_permanently_banned_factor_neutral_lemmas);
         st.update("arith-gcd-conflict", m_gcd_conflicts);
         st.update("arith-cube-calls", m_cube_calls);
         st.update("arith-cube-success", m_cube_success);
