@@ -22,6 +22,12 @@ bool basics::basic_sign_lemma_on_two_monics(const monic& m, const monic& n) {
     const rational sign = sign_to_rat(m.rsign() ^ n.rsign());
     if (var_val(m) == var_val(n) * sign)
         return false;
+    
+    // Throttle basic sign lemmas
+    if (c().throttle().insert_new_basic_sign(nla_throttle::BASIC_SIGN_LEMMA, m.var(), n.var())) {
+        return false; // throttled
+    }
+    
     TRACE(nla_solver, tout << "sign contradiction:\nm = " << pp_mon(c(), m) << "n= " << pp_mon(c(), n) << "sign: " << sign << "\n";);
     generate_sign_lemma(m, n, sign);
     return true;
@@ -225,6 +231,11 @@ bool basics::basic_lemma_for_mon_zero(const monic& rm, const factorization& f) {
         if (val(j).is_zero())
             return false;
     }
+    
+    // Throttle factor zero lemmas
+    if (!f.is_empty() && c().throttle().insert_new_factor(nla_throttle::FACTOR_ZERO_LEMMA, rm.var(), var(f[0]), true))
+        return false; // throttled
+    
     TRACE(nla_solver, c().trace_print_monic_and_factorization(rm, f, tout););
     lemma_builder lemma(c(), "xy = 0 -> x = 0 or y = 0");
     lemma.explain_fixed(var(rm));
@@ -536,6 +547,11 @@ bool basics::basic_lemma_for_mon_neutral_monic_to_factor_model_based(const monic
     if (abs_mv == rational::zero()) {
         return false;
     }
+    
+    // Throttle neutral factor lemmas
+    if (!f.is_empty() && c().throttle().insert_new_factor(nla_throttle::FACTOR_NEUTRAL_LEMMA, rm.var(), var(f[0]), false))
+        return false; // throttled
+        
     lpvar u = null_lpvar, v = null_lpvar;
     bool all_int = true;
     for (auto fc : f) {

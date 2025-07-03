@@ -136,7 +136,19 @@ struct statistics {
     unsigned m_dio_rewrite_conflicts = 0;
     unsigned m_bounds_tightening_conflicts = 0;
     unsigned m_bounds_tightenings = 0;
+    // NLA throttling statistics
     unsigned m_nla_throttled_lemmas = 0;
+    unsigned m_nla_throttled_order_lemmas = 0;
+    unsigned m_nla_throttled_binomial_sign_lemmas = 0;
+    unsigned m_nla_throttled_monotone_lemmas = 0;
+    unsigned m_nla_throttled_tangent_lemmas = 0;
+    unsigned m_nla_throttled_basic_sign_lemmas = 0;
+    unsigned m_nla_throttled_powers_lemmas = 0;
+    unsigned m_nla_throttled_division_lemmas = 0;
+    unsigned m_nla_throttled_grobner_lemmas = 0;
+    unsigned m_nla_throttled_horner_lemmas = 0;
+    unsigned m_nla_throttled_factor_zero_lemmas = 0;
+    unsigned m_nla_throttled_factor_neutral_lemmas = 0;
     ::statistics m_st = {};
 
     void reset() {
@@ -148,6 +160,19 @@ struct statistics {
         st.update("arith-max-columns", m_max_cols);
         st.update("arith-max-rows", m_max_rows);
         st.update("arith-gcd-calls", m_gcd_calls);
+        // NLA throttling stats
+        st.update("arith-nla-throttled-lemmas", m_nla_throttled_lemmas);
+        st.update("arith-nla-throttled-order-lemmas", m_nla_throttled_order_lemmas);
+        st.update("arith-nla-throttled-binomial-sign-lemmas", m_nla_throttled_binomial_sign_lemmas);
+        st.update("arith-nla-throttled-monotone-lemmas", m_nla_throttled_monotone_lemmas);
+        st.update("arith-nla-throttled-tangent-lemmas", m_nla_throttled_tangent_lemmas);
+        st.update("arith-nla-throttled-basic-sign-lemmas", m_nla_throttled_basic_sign_lemmas);
+        st.update("arith-nla-throttled-powers-lemmas", m_nla_throttled_powers_lemmas);
+        st.update("arith-nla-throttled-division-lemmas", m_nla_throttled_division_lemmas);
+        st.update("arith-nla-throttled-grobner-lemmas", m_nla_throttled_grobner_lemmas);
+        st.update("arith-nla-throttled-horner-lemmas", m_nla_throttled_horner_lemmas);
+        st.update("arith-nla-throttled-factor-zero-lemmas", m_nla_throttled_factor_zero_lemmas);
+        st.update("arith-nla-throttled-factor-neutral-lemmas", m_nla_throttled_factor_neutral_lemmas);
         st.update("arith-gcd-conflict", m_gcd_conflicts);
         st.update("arith-cube-calls", m_cube_calls);
         st.update("arith-cube-success", m_cube_success);
@@ -174,7 +199,6 @@ struct statistics {
         st.update("arith-dio-rewrite-conflicts", m_dio_rewrite_conflicts);
         st.update("arith-bounds-tightening-conflicts", m_bounds_tightening_conflicts);
         st.update("arith-bounds-tightenings", m_bounds_tightenings);
-        st.update("arith-nla-throttled-lemmas", m_nla_throttled_lemmas);
         st.copy(m_st);
     }
 };

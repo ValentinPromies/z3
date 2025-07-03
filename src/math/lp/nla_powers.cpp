@@ -89,6 +89,10 @@ namespace nla {
         lemmas.reset();
 
         auto x_exp_0 = [&]() {
+            // Throttle powers lemmas
+            if (c.throttle().insert_new_powers(nla_throttle::POWERS_LEMMA, r, x, y, 0))
+                return l_false; // throttled
+                
             lemma_builder lemma(c, "x != 0 => x^0 = 1");
             lemma |= ineq(x, llc::EQ, rational::zero());
             lemma |= ineq(y, llc::NE, rational::zero());
@@ -97,6 +101,10 @@ namespace nla {
         };
 
         auto zero_exp_y = [&]() {
+            // Throttle powers lemmas
+            if (c.throttle().insert_new_powers(nla_throttle::POWERS_LEMMA, r, x, y, 1))
+                return l_false; // throttled
+                
             lemma_builder lemma(c, "y != 0 => 0^y = 0");
             lemma |= ineq(x, llc::NE, rational::zero());
             lemma |= ineq(y, llc::EQ, rational::zero());
@@ -105,6 +113,10 @@ namespace nla {
         };
 
         auto x_gt_0 = [&]() {
+            // Throttle powers lemmas
+            if (c.throttle().insert_new_powers(nla_throttle::POWERS_LEMMA, r, x, y, 2))
+                return l_false; // throttled
+                
             lemma_builder lemma(c, "x > 0 => x^y > 0");
             lemma |= ineq(x, llc::LE, rational::zero());
             lemma |= ineq(r, llc::GT, rational::zero());
@@ -112,6 +124,10 @@ namespace nla {
         };
 
         auto y_lt_1 = [&]() {
+            // Throttle powers lemmas
+            if (c.throttle().insert_new_powers(nla_throttle::POWERS_LEMMA, r, x, y, 3))
+                return l_false; // throttled
+                
             lemma_builder lemma(c, "x > 1, y < 0 => x^y < 1");
             lemma |= ineq(x, llc::LE, rational::one());
             lemma |= ineq(y, llc::GE, rational::zero());

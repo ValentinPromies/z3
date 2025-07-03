@@ -343,9 +343,13 @@ namespace nla {
             return false;
         }
         evali.get_interval<dd::w_dep::with_deps>(e.poly(), i_wd);  
-        std::function<void (const lp::explanation&)> f = [this](const lp::explanation& e) {
+        std::function<void (const lp::explanation&)> f = [this, &e](const lp::explanation& exp) {
+            // Throttle Grobner lemmas
+            if (c().throttle().insert_new_grobner(nla_throttle::GROBNER_LEMMA, e.poly().free_vars()[0], 0, e.idx()))
+                return; // throttled
+                
             lemma_builder lemma(m_core, "pdd");
-            lemma &= e;
+            lemma &= exp;
         };
         if (di.check_interval_for_conflict_on_zero(i_wd, e.dep(), f)) {
             TRACE(grobner, m_solver.display(tout << "conflict ", e) << "\n");
@@ -643,6 +647,13 @@ namespace nla {
     }
 
     bool grobner::add_horner_conflict(const dd::solver::equation& eq) {
+        // Throttle horner lemmas
+        if (!eq.poly().free_vars().empty()) {
+            lpvar first_var = eq.poly().free_vars()[0];
+            if (false && c().throttle().insert_new_horner(nla_throttle::HORNER_LEMMA, first_var, eq.idx()))
+                return false; // throttled
+        }
+        
         nex_creator& nc = m_nex_creator;
         nc.pop(0);
         nex_creator::sum_factory sum(nc);

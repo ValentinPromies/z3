@@ -103,7 +103,6 @@ class core {
     lpvar                    m_patched_var = 0;
     monic const*             m_patched_monic = nullptr; 
 
-    nla_throttle             m_throttle;
     bool                     m_throttle_enabled = true;
 
 
@@ -439,6 +438,7 @@ public:
     bool throttle_enabled() const { return m_throttle_enabled; }
     nla_throttle& throttle() { return m_throttle; }
     const nla_throttle& throttle() const { return m_throttle; }
+    nla_throttle m_throttle;
 
 };  // end of core
 

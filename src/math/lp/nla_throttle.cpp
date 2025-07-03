@@ -68,13 +68,190 @@ bool nla_throttle::insert_new(throttle_kind k, lpvar monic_var, lpvar x_var, lpv
     return insert_new_impl(sig);
 }
 
+bool nla_throttle::insert_new_powers(throttle_kind k, lpvar r, lpvar x, lpvar y, unsigned lemma_type) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(r);
+    sig.m_values[2] = static_cast<unsigned>(x);
+    sig.m_values[3] = static_cast<unsigned>(y);
+    sig.m_values[4] = static_cast<unsigned>(lemma_type);
+    return insert_new_impl(sig);
+}
+
+bool nla_throttle::insert_new_division(throttle_kind k, lpvar q, lpvar x, lpvar y, unsigned lemma_type) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(q);
+    sig.m_values[2] = static_cast<unsigned>(x);
+    sig.m_values[3] = static_cast<unsigned>(y);
+    sig.m_values[4] = static_cast<unsigned>(lemma_type);
+    return insert_new_impl(sig);
+}
+
+bool nla_throttle::insert_new_grobner(throttle_kind k, lpvar v1, lpvar v2, unsigned eq_id) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(v1);
+    sig.m_values[2] = static_cast<unsigned>(v2);
+    sig.m_values[3] = static_cast<unsigned>(eq_id);
+    return insert_new_impl(sig);
+}
+
+bool nla_throttle::insert_new_basic_sign(throttle_kind k, lpvar m, int sign) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(m);
+    sig.m_values[2] = normalize_sign(sign);
+    return insert_new_impl(sig);
+}
+
+bool nla_throttle::insert_new_horner(throttle_kind k, lpvar v, unsigned term_id) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(v);
+    sig.m_values[2] = static_cast<unsigned>(term_id);
+    return insert_new_impl(sig);
+}
+
+bool nla_throttle::insert_new_factor(throttle_kind k, lpvar monic, lpvar factor, bool is_zero) {
+    signature sig;
+    sig.m_values[0] = static_cast<unsigned>(k);
+    sig.m_values[1] = static_cast<unsigned>(monic);
+    sig.m_values[2] = static_cast<unsigned>(factor);
+    sig.m_values[3] = static_cast<unsigned>(is_zero ? 1 : 0);
+    return insert_new_impl(sig);
+}
+
 bool nla_throttle::insert_new_impl(const signature& sig) {
-    if (m_seen.contains(sig)) {
-        TRACE(nla_solver, tout << "throttled lemma generation\n";);
+    throttle_kind k = static_cast<throttle_kind>(sig.m_values[0]);
+    
+    // Check permanent throttling first (forbidden for life)
+    if (m_permanently_forbidden.contains(sig)) {
+        TRACE(nla_throttle, 
+              tout << "permanently throttled lemma generation, kind=" << static_cast<int>(k) 
+                   << " sig=[" << sig.m_values[0] << "," << sig.m_values[1] << "," 
+                   << sig.m_values[2] << "," << sig.m_values[3] << "," 
+                   << sig.m_values[4] << "," << sig.m_values[5] << "," 
+                   << sig.m_values[6] << "," << sig.m_values[7] << "]\n";);
         m_stats.m_nla_throttled_lemmas++;
+        
+        // Update specific lemma type statistics
+        switch (k) {
+            case ORDER_LEMMA:
+                m_stats.m_nla_throttled_order_lemmas++;
+                break;
+            case BINOMIAL_SIGN_LEMMA:
+                m_stats.m_nla_throttled_binomial_sign_lemmas++;
+                break;
+            case MONOTONE_LEMMA:
+                m_stats.m_nla_throttled_monotone_lemmas++;
+                break;
+            case TANGENT_LEMMA:
+                m_stats.m_nla_throttled_tangent_lemmas++;
+                break;
+            case BASIC_SIGN_LEMMA:
+                m_stats.m_nla_throttled_basic_sign_lemmas++;
+                break;
+            case POWERS_LEMMA:
+                m_stats.m_nla_throttled_powers_lemmas++;
+                break;
+            case DIVISION_LEMMA:
+                m_stats.m_nla_throttled_division_lemmas++;
+                break;
+            case GROBNER_LEMMA:
+                m_stats.m_nla_throttled_grobner_lemmas++;
+                break;
+            case HORNER_LEMMA:
+                m_stats.m_nla_throttled_horner_lemmas++;
+                break;
+            case FACTOR_ZERO_LEMMA:
+                m_stats.m_nla_throttled_factor_zero_lemmas++;
+                break;
+            case FACTOR_NEUTRAL_LEMMA:
+                m_stats.m_nla_throttled_factor_neutral_lemmas++;
+                break;
+            default:
+                TRACE(nla_throttle, tout << "Unexpected throttle kind: " << static_cast<int>(k) << "\n";);
+        }
+        
+        return true;  // Permanently throttled
+    }
+    
+    // Check temporary throttling (backtrackable)
+    if (m_seen.contains(sig)) {
+        TRACE(nla_throttle, tout << "throttled lemma generation\n";);
+        m_stats.m_nla_throttled_lemmas++;
+        
+        // Increment throttle count
+        auto it = m_throttle_count.find_core(sig);
+        unsigned count = (it != nullptr) ? it->get_data().m_value + 1 : 1;
+        m_throttle_count.insert(sig, count);
+        
+        TRACE(nla_throttle, 
+              tout << "throttled lemma, kind=" << static_cast<int>(k) << " count=" << count
+                   << " sig=[" << sig.m_values[0] << "," << sig.m_values[1] << "," 
+                   << sig.m_values[2] << "," << sig.m_values[3] << "," 
+                   << sig.m_values[4] << "," << sig.m_values[5] << "," 
+                   << sig.m_values[6] << "," << sig.m_values[7] << "]\n";);
+        
+        // Check if this lemma should be permanently banned
+        if (should_permanently_ban(sig, k)) {
+            m_permanently_forbidden.insert(sig);
+            TRACE(nla_throttle, 
+                  tout << "banned lemma for life, kind=" << static_cast<int>(k) 
+                       << " after " << count << " throttles\n";);
+        }
+        
+        // Update specific lemma type statistics
+        switch (k) {
+            case ORDER_LEMMA:
+                m_stats.m_nla_throttled_order_lemmas++;
+                break;
+            case BINOMIAL_SIGN_LEMMA:
+                m_stats.m_nla_throttled_binomial_sign_lemmas++;
+                break;
+            case MONOTONE_LEMMA:
+                m_stats.m_nla_throttled_monotone_lemmas++;
+                break;
+            case TANGENT_LEMMA:
+                m_stats.m_nla_throttled_tangent_lemmas++;
+                break;
+            case BASIC_SIGN_LEMMA:
+                m_stats.m_nla_throttled_basic_sign_lemmas++;
+                break;
+            case POWERS_LEMMA:
+                m_stats.m_nla_throttled_powers_lemmas++;
+                break;
+            case DIVISION_LEMMA:
+                m_stats.m_nla_throttled_division_lemmas++;
+                break;
+            case GROBNER_LEMMA:
+                m_stats.m_nla_throttled_grobner_lemmas++;
+                break;
+            case HORNER_LEMMA:
+                m_stats.m_nla_throttled_horner_lemmas++;
+                break;
+            case FACTOR_ZERO_LEMMA:
+                m_stats.m_nla_throttled_factor_zero_lemmas++;
+                break;
+            case FACTOR_NEUTRAL_LEMMA:
+                m_stats.m_nla_throttled_factor_neutral_lemmas++;
+                break;
+            default:
+                TRACE(nla_throttle, tout << "Unexpected throttle kind: " << static_cast<int>(k) << "\n";);
+        }
+        
         return true;  // Already seen, throttle
     }
     
+    TRACE(nla_throttle, 
+          tout << "new lemma, kind=" << static_cast<int>(k) 
+               << " sig=[" << sig.m_values[0] << "," << sig.m_values[1] << "," 
+               << sig.m_values[2] << "," << sig.m_values[3] << "," 
+               << sig.m_values[4] << "," << sig.m_values[5] << "," 
+               << sig.m_values[6] << "," << sig.m_values[7] << "]\n";);
+    
+    // Add to temporary throttling (backtrackable)
     m_seen.insert(sig);
     m_trail.push(insert_map(m_seen, sig));
     return false;     // New, don't throttle
