@@ -2197,7 +2197,7 @@ namespace nlsat {
             clause.reset();
             m_lazy_clause.reset();
             m_explain.set_linear_project(true);
-            m_explain.main_operator(1, &best_literal, m_lazy_clause);
+            m_explain.compute_conflict_explanation(1, &best_literal, m_lazy_clause);
             m_explain.set_linear_project(false);
 
             for (auto l : m_lazy_clause) {

@@ -50,6 +50,7 @@ namespace nlsat {
         bool                    m_factor;
         bool                    m_add_all_coeffs;
         bool                    m_add_zero_disc;
+        bool                    m_linear_project;
 
         assignment const &      sample() const { return m_solver.sample(); }
         assignment &            sample() { return m_solver.sample(); }
@@ -102,6 +103,8 @@ namespace nlsat {
             m_minimize_cores   = false;
             m_add_all_coeffs   = false;
             m_add_zero_disc    = false;
+            m_linear_project   = false;
+            
         }
 
     // display helpers moved to free functions in nlsat_common.h
@@ -1144,9 +1147,9 @@ namespace nlsat {
 
         /**
          *  \brief add cell literals for the linearized projection and categorize the polynomials in ps
-         *  - ps_below will contain all polynomials from ps which have a root below m_assignment w.r.t. x
-         *  - ps_above will contain all polynomials from ps which have a root above m_assignment w.r.t. x
-         *  - ps_equal will contain at least one polynomial from ps which have a root equal to m_assignment
+         *  - ps_below will contain all polynomials from ps which have a root below sample() w.r.t. x
+         *  - ps_above will contain all polynomials from ps which have a root above sample() w.r.t. x
+         *  - ps_equal will contain at least one polynomial from ps which have a root equal to sample()
          *  - In addition, they may contain additional linear polynomials added as cell boundaries
          *  - The back elements of ps_below, ps_above, ps_equal are the polynomials used for the cell literals
          */
@@ -1159,8 +1162,8 @@ namespace nlsat {
             ps_above.reset();
             ps_equal.reset();
 
-            SASSERT(m_assignment.is_assigned(x));
-            anum const & x_val = m_assignment.value(x);
+            SASSERT(sample().is_assigned(x));
+            anum const & x_val = sample().value(x);
 
             bool           lower_inf = true,   upper_inf = true;
             scoped_anum    lower(m_am),        upper(m_am);
@@ -1177,7 +1180,7 @@ namespace nlsat {
                 roots.reset();
 
                 // Temporarily unassign x, s.t. isolate_roots does not assume p as constant.
-                m_am.isolate_roots(p, undef_var_assignment(m_assignment, x), roots);
+                m_am.isolate_roots(p, undef_var_assignment(sample(), x), roots);
                 unsigned num_roots = roots.size();
                 if (num_roots == 0) 
                     continue;
@@ -1298,7 +1301,7 @@ namespace nlsat {
             polynomial_ref_vector ps_above_sample(m_pm);
             polynomial_ref_vector ps_equal_sample(m_pm);
             var x = m_todo.extract_max_polys(ps);
-            if (!m_assignment.is_assigned(x)) {
+            if (!sample().is_assigned(x)) {
                 // top level projection like original
                 // we could also do a covering-style projection, sparing some resultants
                 add_lcs(ps, x);
