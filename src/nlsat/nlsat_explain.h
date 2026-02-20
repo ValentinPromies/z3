@@ -44,7 +44,6 @@ namespace nlsat {
         void set_full_dimensional(bool f);
         void set_minimize_cores(bool f);
         void set_factor(bool f);
-        void set_linear_project(bool f);
         void set_add_all_coeffs(bool f);
         void set_add_zero_disc(bool f);
 
@@ -67,6 +66,12 @@ namespace nlsat {
         */
         void compute_conflict_explanation(unsigned n, literal const * ls, scoped_literal_vector & result);
 
+        /**
+           \brief A variant of compute_conflict_explanation, but all resulting literals s_i are linear.
+           This is achieved by adding new polynomials during the projection, thereby under-approximating
+           the computed cell.
+        */
+        void compute_linear_explanation(unsigned n, literal const * ls, scoped_literal_vector & result);
         
         /**
            \brief projection for a given variable.

@@ -50,7 +50,6 @@ namespace nlsat {
         bool                    m_factor;
         bool                    m_add_all_coeffs;
         bool                    m_add_zero_disc;
-        bool                    m_linear_project;
 
         assignment const &      sample() const { return m_solver.sample(); }
         assignment &            sample() { return m_solver.sample(); }
@@ -103,8 +102,6 @@ namespace nlsat {
             m_minimize_cores   = false;
             m_add_all_coeffs   = false;
             m_add_zero_disc    = false;
-            m_linear_project   = false;
-            
         }
 
     // display helpers moved to free functions in nlsat_common.h
@@ -1043,13 +1040,13 @@ namespace nlsat {
            \brief Apply model-based projection operation defined in our paper.
         */
 
-        bool levelwise_single_cell(polynomial_ref_vector & ps, var max_x, polynomial::cache & cache) {
+        bool levelwise_single_cell(polynomial_ref_vector & ps, var max_x, polynomial::cache & cache, bool linear=false) {
             // Store polynomials for debugging unsound lemmas
             m_last_lws_input_polys.reset();
             for (unsigned i = 0; i < ps.size(); i++)
                 m_last_lws_input_polys.push_back(ps.get(i));
             
-            levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am, cache);
+            levelwise lws(m_solver, ps, max_x, sample(), m_pm, m_am, cache, linear);
             auto cell = lws.single_cell();
             TRACE(lws, for (unsigned i = 0; i < cell.size(); i++)
                                  display(tout << "I[" << i << "]:", m_solver, cell[i]) << "\n";);
@@ -1146,130 +1143,6 @@ namespace nlsat {
 
 
         /**
-         *  \brief add cell literals for the linearized projection and categorize the polynomials in ps
-         *  - ps_below will contain all polynomials from ps which have a root below sample() w.r.t. x
-         *  - ps_above will contain all polynomials from ps which have a root above sample() w.r.t. x
-         *  - ps_equal will contain at least one polynomial from ps which have a root equal to sample()
-         *  - In addition, they may contain additional linear polynomials added as cell boundaries
-         *  - The back elements of ps_below, ps_above, ps_equal are the polynomials used for the cell literals
-         */
-        void add_cell_lits_linear(polynomial_ref_vector const& ps,
-                                  var const x,
-                                  polynomial_ref_vector& ps_below,
-                                  polynomial_ref_vector& ps_above,
-                                  polynomial_ref_vector& ps_equal) {
-            ps_below.reset();
-            ps_above.reset();
-            ps_equal.reset();
-
-            SASSERT(sample().is_assigned(x));
-            anum const & x_val = sample().value(x);
-
-            bool           lower_inf = true,   upper_inf = true;
-            scoped_anum    lower(m_am),        upper(m_am);
-            polynomial_ref p_lower(m_pm),      p_upper(m_pm);
-
-            scoped_anum_vector & roots = m_roots_tmp;
-            polynomial_ref p(m_pm);
-
-            unsigned sz = ps.size();
-            for (unsigned k = 0; k < sz; k++) {
-                p = ps.get(k);
-                if (max_var(p) != x)
-                    continue;
-                roots.reset();
-
-                // Temporarily unassign x, s.t. isolate_roots does not assume p as constant.
-                m_am.isolate_roots(p, undef_var_assignment(sample(), x), roots);
-                unsigned num_roots = roots.size();
-                if (num_roots == 0) 
-                    continue;
-
-                // find p's smallest root above the sample
-                unsigned i = 0;
-                int s = 1;
-                for (; i < num_roots; ++i) {
-                    s = m_am.compare(x_val, roots[i]);
-                    if (s <= 0) break;
-                }
-
-                if (s == 0) {
-                    // roots[i] == x_val
-                    ps_equal.push_back(p);
-                    p_lower = p;
-                    break; // TODO: choose the best among multiple section polynomials?
-                } 
-                else if (s < 0) {
-                    // x_val < roots[i]
-                    ps_above.push_back(p);
-                    if (upper_inf || m_am.lt(roots[i], upper)) {
-                        upper_inf = false;
-                        m_am.set(upper, roots[i]);
-                        p_upper = p;
-                    }
-                }
-                // in any case, roots[i-1] might provide a lower bound if it exists
-                if (i > 0) {
-                    // roots[i-1] < x_val
-                    ps_below.push_back(p);
-                    if (lower_inf || m_am.lt(lower, roots[i-1])) {
-                        lower_inf = false;
-                        m_am.set(lower, roots[i-1]);
-                        p_lower = p;
-                    }
-                }
-            }
-
-            // add linear cell bounds
-
-            if (!ps_equal.empty()) {
-                if (!m_am.is_rational(x_val)) {
-                    // TODO: FAIL
-                    NOT_IMPLEMENTED_YET();
-                } 
-                else if (m_pm.total_degree(p_lower) > 1) {
-                    rational bound;
-                    m_am.to_rational(x_val, bound);
-                    p_lower = m_pm.mk_polynomial(x);
-                    p_lower = denominator(bound)*p_lower - numerator(bound);
-                }
-                add_root_literal(atom::ROOT_EQ, x, 1, p_lower);
-                // make sure bounding poly is at the back of the vector
-                ps_equal.push_back(p_lower);
-                return;
-            }
-            if (!lower_inf) {
-                bool approximate = (m_pm.total_degree(p_lower) > 1);
-                if (approximate) {
-                    scoped_anum between(m_am);
-                    m_am.select(lower, x_val, between);
-                    rational new_bound;
-                    m_am.to_rational(between, new_bound);
-                    p_lower = m_pm.mk_polynomial(x);
-                    p_lower = denominator(new_bound)*p_lower - numerator(new_bound);
-                }
-                add_root_literal((/*approximate ||*/ m_full_dimensional) ? atom::ROOT_GE : atom::ROOT_GT, x, 1, p_lower);
-                // make sure bounding poly is at the back of the vector
-                ps_below.push_back(p_lower);
-            }
-            if (!upper_inf) {
-                bool approximate = (m_pm.total_degree(p_upper) > 1);
-                if (approximate) {
-                    scoped_anum between(m_am);
-                    m_am.select(x_val, upper, between);
-                    rational new_bound;
-                    m_am.to_rational(between, new_bound);
-                    p_upper = m_pm.mk_polynomial(x);
-                    p_upper = denominator(new_bound)*p_upper - numerator(new_bound);
-                }
-                add_root_literal((/*approximate ||*/ m_full_dimensional) ? atom::ROOT_LE : atom::ROOT_LT, x, 1, p_upper);
-                // make sure bounding poly is at the back of the vector
-                ps_above.push_back(p_upper);
-            }
-        }
-
-
-        /**
          * \brief compute the resultants of p with each polynomial in ps w.r.t. x
          */
         void psc_resultants_with(polynomial_ref_vector const& ps, polynomial_ref p, var const x) {
@@ -1282,69 +1155,6 @@ namespace nlsat {
             }
         }
 
-
-        /**
-         * Linearized projection based on:
-         * Valentin Promies, Jasper Nalbach, Erika Abraham and Paul Wagner
-         * "More is Less: Adding Polynomials for Faster Explanations in NLSAT"
-         * in CADE30, 2025
-         */
-        void linear_project(polynomial_ref_vector & ps, var max_x) {
-            if (ps.empty())
-                return;
-            m_todo.reset();
-            for (poly* p : ps) {
-                m_todo.insert(p);
-            }
-
-            polynomial_ref_vector ps_below_sample(m_pm);
-            polynomial_ref_vector ps_above_sample(m_pm);
-            polynomial_ref_vector ps_equal_sample(m_pm);
-            var x = m_todo.extract_max_polys(ps);
-            if (!sample().is_assigned(x)) {
-                // top level projection like original
-                // we could also do a covering-style projection, sparing some resultants
-                add_lcs(ps, x);
-                psc_discriminant(ps, x);
-                psc_resultant(ps, x);
-                x = m_todo.extract_max_polys(ps);
-            }
-
-            while (true) {
-                add_cell_lits_linear(ps, x, ps_below_sample, ps_above_sample, ps_equal_sample);
-                if (all_univ(ps, x) && m_todo.empty()) {
-                    m_todo.reset();
-                    break;
-                }
-                add_lcs(ps, x);
-                psc_discriminant(ps, x);
-                polynomial_ref lb(m_pm);
-                polynomial_ref ub(m_pm);
-
-                if (!ps_equal_sample.empty()) {
-                    // section
-                    lb = ps_equal_sample.back();
-                    psc_resultants_with(ps, lb, x);
-                } 
-                else {
-                    if (!ps_below_sample.empty()) {
-                        lb = ps_below_sample.back();
-                        psc_resultants_with(ps_below_sample, lb, x);
-                    }
-                    if (!ps_above_sample.empty()) {
-                        ub = ps_above_sample.back();
-                        psc_resultants_with(ps_above_sample, ub, x);
-                        if (!ps_below_sample.empty()) {
-                            // also need resultant between bounds
-                            psc(lb, ub, x);
-                        }
-                    }
-                }
-                if (m_todo.empty())
-                    break;
-                x = m_todo.extract_max_polys(ps);
-            }
-        }
 
         bool check_already_added() const {
             for (bool b : m_already_added_literal) {
@@ -1902,6 +1712,38 @@ namespace nlsat {
         }
 
 
+        void compute_linear_explanation(unsigned num, literal const * ls, scoped_literal_vector & result) {
+            SASSERT(check_already_added());
+            SASSERT(num > 0);
+            SASSERT(max_var(num, ls) != 0 || m_solver.sample().is_assigned(0));
+            TRACE(nlsat_explain, 
+                  tout << "the infeasible clause:\n"; 
+                  display(tout, m_solver, num, ls) << "\n";
+                  m_solver.display_assignment(tout << "assignment:\n");
+                  );
+
+            m_result = &result;
+            m_lower_stage_polys.reset();
+            collect_polys(num, ls, m_ps);
+            for (unsigned i = 0; i < m_lower_stage_polys.size(); i++) {
+                m_ps.push_back(m_lower_stage_polys.get(i));
+            }
+            if (m_ps.empty())
+                return;
+            
+            // We call levelwise directly without normalize, simplify, elim_vanishing to preserve the original polynomials
+            var max_x = max_var(m_ps);
+            bool levelwise_ok = levelwise_single_cell(m_ps, max_x, m_cache); // TODO: make lws call linear
+            SASSERT(levelwise_ok);
+            m_solver.record_levelwise_result(levelwise_ok);
+
+            reset_already_added();
+            m_result = nullptr;
+            TRACE(nlsat_explain, display(tout << "[explain] result\n", m_solver, result) << "\n";);
+            CASSERT("nlsat", check_already_added());
+        }
+
+
         void project(var x, unsigned num, literal const * ls, scoped_literal_vector & result) {
             unsigned base = result.size();
             while (true) {
@@ -2056,10 +1898,6 @@ namespace nlsat {
         m_imp->m_simplify_cores = f;
     }
 
-    void explain::set_linear_project(bool f) {
-        m_imp->m_linear_project = f;
-    }
-
     void explain::set_full_dimensional(bool f) {
         m_imp->m_full_dimensional = f;
     }
@@ -2082,6 +1920,10 @@ namespace nlsat {
 
     void explain::compute_conflict_explanation(unsigned n, literal const * ls, scoped_literal_vector & result) {
         m_imp->compute_conflict_explanation(n, ls, result);
+    }
+
+    void explain::compute_linear_explanation(unsigned n, literal const * ls, scoped_literal_vector & result) {
+        m_imp->compute_linear_explanation(n, ls, result);
     }
 
     void explain::project(var x, unsigned n, literal const * ls, scoped_literal_vector & result) {
