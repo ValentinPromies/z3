@@ -264,6 +264,8 @@ namespace nlsat {
         unsigned lws_spt_threshold() const;
         bool lws_witness_subs_lc() const;
         bool lws_witness_subs_disc() const;
+        bool lws_linearization() const;
+        unsigned lws_call_count() const;
         void reset();
         void collect_statistics(statistics & st);
         void reset_statistics();

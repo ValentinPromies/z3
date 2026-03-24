@@ -45,6 +45,17 @@ namespace nlsat {
     };
 
 
+    // possible ways of using linearization to simplify cells.
+    // none:    do not use linearization
+    // partial: only use linearization if the cell bounds are "too complex"
+    // full:    linearize all cell bounds
+    enum class linearization_mode {
+        none,
+        partial,
+        full
+    };
+
+    
     struct levelwise::impl {
         solver&                      m_solver;
         polynomial_ref_vector const& m_P;
@@ -76,7 +87,10 @@ namespace nlsat {
         mutable std_vector<unsigned> m_deg_in_order_graph; // degree of polynomial in resultant graph
         mutable std_vector<unsigned> m_unique_neighbor;    // UINT_MAX = not set, UINT_MAX-1 = multiple
 
-        bool m_linear_cell = false; // indicates whether cell bounds are forced to be linear
+        linearization_mode m_linearization_mode = linearization_mode::none;
+        unsigned m_linearization_deg_threshold = 4;
+        unsigned m_linearization_threshold_inc = 5;
+
 
         assignment const& sample() const { return m_solver.sample(); }
 
@@ -240,7 +254,7 @@ namespace nlsat {
             pmanager& pm,
             anum_manager& am,
             polynomial::cache& cache,
-            bool linear)
+            bool fully_linear)
             : m_solver(solver),
               m_P(ps),
               m_n(max_x),
@@ -249,8 +263,7 @@ namespace nlsat {
               m_cache(cache),
               m_todo(m_cache, true),
               m_level_ps(m_pm),
-              m_psc_tmp(m_pm),
-              m_linear_cell(linear) {
+              m_psc_tmp(m_pm) {
             m_I.reserve(m_n);
             for (unsigned i = 0; i < m_n; ++i)
                 m_I.emplace_back(m_pm);
@@ -258,6 +271,12 @@ namespace nlsat {
             m_spanning_tree_threshold = m_solver.lws_spt_threshold();
             m_witness_subs_lc = m_solver.lws_witness_subs_lc();
             m_witness_subs_disc = m_solver.lws_witness_subs_disc();
+
+            m_linearization_mode = (
+                fully_linear                 ? linearization_mode::full : (
+                m_solver.lws_linearization() ? linearization_mode::partial :
+                                               linearization_mode::none
+            ));
         }
 
         // Handle a polynomial whose every coefficient evaluates to zero at the sample.
@@ -1076,6 +1095,15 @@ namespace nlsat {
             m_witnesses.push_back(w);
         }
 
+        bool should_add_linear_approximation(polynomial_ref p) {
+            unsigned deg = m_pm.total_degree(p);
+            if (m_linearization_mode == linearization_mode::full)
+                return deg > 1;
+            unsigned n_cells = m_solver.lws_call_count();
+            unsigned threshold = (m_linearization_deg_threshold + (n_cells / m_linearization_threshold_inc));
+            return deg > threshold;
+        }
+
         // Ensure that the interval bounds will be described by linear polynomials.
         // If this is not already the case, the working set of polynomials is extended by
         // new linear polynomials whose roots under-approximate the cell boundary.
@@ -1087,10 +1115,13 @@ namespace nlsat {
             // Reserve space to avoid reallocation during emplace
             r.reserve(r.size() + 2);
             if (m_I[m_level].is_section()) {
-                if (!m_am.is_rational(v)) {
+                if (m_linearization_mode == linearization_mode::partial) {
+                    return;
+                }
+                else if (!m_am.is_rational(v)) {
                     NOT_IMPLEMENTED_YET();
                 } 
-                else if (m_pm.total_degree(m_I[m_level].l) > 1) {
+                else if (should_add_linear_approximation(m_I[m_level].l)) {
                     add_linear_poly_from_root(v, true, p_lower);
                     // update root function ordering
                     r.emplace((r.begin() + m_l_rf), m_am, p_lower, 1, v, m_level_ps.size()-1);
@@ -1099,7 +1130,7 @@ namespace nlsat {
             }
 
             // sector: have to consider lower and upper bound
-            if (!m_I[m_level].l_inf() && m_pm.total_degree(m_I[m_level].l) > 1) {
+            if (!m_I[m_level].l_inf() && should_add_linear_approximation(m_I[m_level].l)) {
                 scoped_anum between(m_am);
                 m_am.select(r[m_l_rf].val, v, between);
                 add_linear_poly_from_root(between, true, p_lower);
@@ -1109,7 +1140,7 @@ namespace nlsat {
                 if (is_set(m_u_rf))
                     ++m_u_rf;
             }
-            if (!m_I[m_level].u_inf() && m_pm.total_degree(m_I[m_level].u) > 1) {
+            if (!m_I[m_level].u_inf() && should_add_linear_approximation(m_I[m_level].u)) {
                 scoped_anum between(m_am);
                 m_am.select(v, r[m_u_rf].val, between);
                 // update root function ordering
@@ -1134,7 +1165,7 @@ namespace nlsat {
 
             set_interval_from_root_partition(v, mid);
 
-            if (m_linear_cell)
+            if (m_linearization_mode != linearization_mode::none);
                 add_linear_approximations(v);
 
             compute_side_mask();
@@ -1492,8 +1523,8 @@ namespace nlsat {
         pmanager& pm,
         anum_manager& am,
         polynomial::cache& cache,
-        bool linear)
-        : m_impl(new impl(solver, ps, n, s, pm, am, cache, linear)) {}
+        bool fully_linear)
+        : m_impl(new impl(solver, ps, n, s, pm, am, cache, fully_linear)) {}
 
     levelwise::~levelwise() { delete m_impl; }
 

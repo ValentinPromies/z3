@@ -49,6 +49,7 @@ namespace nlsat {
         bool                    m_factor;
         bool                    m_add_all_coeffs;
         bool                    m_add_zero_disc;
+        bool                    m_approximate_cells;
 
         assignment const &      sample() const { return m_solver.sample(); }
         assignment &            sample() { return m_solver.sample(); }
