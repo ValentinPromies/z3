@@ -1096,12 +1096,11 @@ namespace nlsat {
         }
 
         bool should_add_linear_approximation(polynomial_ref p) {
-            unsigned deg = m_pm.total_degree(p);
             if (m_linearization_mode == linearization_mode::full)
-                return deg > 1;
+                return m_pm.total_degree(p) > 1;
             unsigned n_cells = m_solver.lws_call_count();
             unsigned threshold = (m_linearization_deg_threshold + (n_cells / m_linearization_threshold_inc));
-            return deg > threshold;
+            return m_pm.degree(p, m_level) > threshold;
         }
 
         // Ensure that the interval bounds will be described by linear polynomials.
@@ -1165,7 +1164,7 @@ namespace nlsat {
 
             set_interval_from_root_partition(v, mid);
 
-            if (m_linearization_mode != linearization_mode::none);
+            if (m_linearization_mode != linearization_mode::none)
                 add_linear_approximations(v);
 
             compute_side_mask();
