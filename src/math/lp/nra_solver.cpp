@@ -124,11 +124,11 @@ struct solver::imp {
         }
         else if (lra.column_has_term(v)) {
             for (auto const& [w, coeff] : lra.get_term(v))
-                scale = lcm(scale, denominator(coeff));
+                scale = lcm(scale, denominator(coeff)*scales[w]);
             for (auto const& [w, coeff] : lra.get_term(v)) {
                 auto pw = definitions.get(w);
                 polynomial::polynomial_ref term(pm);
-                term = pm.mul(scale * coeff, pw);
+                term = pm.mul((scale / scales[w]) * coeff, pw);
                 if (!p)
                     p = term;
                 else
@@ -331,11 +331,6 @@ struct solver::imp {
             am().set(a, m_nla_core.val(v).to_mpq());
             m_values->push_back(a);
             mk_definition_assignment(v, definitions, scales);
-        }
-
-        rational scales_lcm(1);
-        for (const auto& s: scales) {
-            scales_lcm = lcm(scales_lcm, s);
         }
 
         for (auto ci : m_coi.constraints()) {
