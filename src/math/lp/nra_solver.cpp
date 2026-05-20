@@ -102,9 +102,10 @@ struct solver::imp {
 
     // Create polynomial definition for variable v used in setup_assignment_solver.
     // Side-effects: updates m_vars2mon when v is a monic variable.
-    void mk_definition_assignment(unsigned v, polynomial_ref_vector &definitions) {
+    void mk_definition_assignment(unsigned v, polynomial_ref_vector &definitions, vector<rational>& scales) {
         auto &pm = m_nlsat->pm();
         polynomial::polynomial_ref p(pm);
+        rational scale(1);
         if (m_nla_core.emons().is_monic_var(v)) {
             auto const &m = m_nla_core.emons()[v];
             auto vars = m.vars();
@@ -112,20 +113,22 @@ struct solver::imp {
             m_vars2mon.insert(vars, v);
             for (auto v2 : vars) {
                 auto pv = definitions.get(v2);
-                if (!p)
+                if (!p) {
                     p = pv;
-                else
+                }
+                else {
                     p = pm.mul(p, pv);
+                    scale *= scales[v2];
+                }
             }
         }
         else if (lra.column_has_term(v)) {
-            rational den(1);
             for (auto const& [w, coeff] : lra.get_term(v))
-                den = lcm(den, denominator(coeff));
+                scale = lcm(scale, denominator(coeff));
             for (auto const& [w, coeff] : lra.get_term(v)) {
                 auto pw = definitions.get(w);
                 polynomial::polynomial_ref term(pm);
-                term = pm.mul(den * coeff, pw);
+                term = pm.mul(scale * coeff, pw);
                 if (!p)
                     p = term;
                 else
@@ -136,6 +139,7 @@ struct solver::imp {
             p = pm.mk_polynomial(lp2nl(v));
         }
         definitions.push_back(p);
+        scales.push_back(scale);
     }
 
     void setup_solver_poly() {
@@ -318,6 +322,7 @@ struct solver::imp {
         m_coi.init();
         auto &pm = m_nlsat->pm();
         polynomial_ref_vector definitions(pm);
+        vector<rational> scales;
         for (unsigned v = 0; v < lra.number_of_vars(); ++v) {
             auto j = m_nlsat->mk_var(lra.var_is_int(v));
             VERIFY(j == v);
@@ -325,7 +330,12 @@ struct solver::imp {
             scoped_anum a(am());
             am().set(a, m_nla_core.val(v).to_mpq());
             m_values->push_back(a);
-            mk_definition_assignment(v, definitions);
+            mk_definition_assignment(v, definitions, scales);
+        }
+
+        rational scales_lcm(1);
+        for (const auto& s: scales) {
+            scales_lcm = lcm(scales_lcm, s);
         }
 
         for (auto ci : m_coi.constraints()) {
@@ -335,14 +345,15 @@ struct solver::imp {
             auto rhs = c.rhs();
             auto lhs = c.coeffs();
             rational den = denominator(rhs);
+    
             for (auto [coeff, v] : lhs)
-                den = lcm(den, denominator(coeff));
+                den = lcm(den, denominator(coeff)*scales[v]);
             polynomial::polynomial_ref p(pm);
             p = pm.mk_const(-den * rhs);
 
             for (auto [coeff, v] : lhs) {
                 polynomial_ref poly(pm);
-                poly = pm.mul(den * coeff, definitions.get(v));
+                poly = pm.mul((den / scales[v]) * coeff, definitions.get(v));
                 p = p + poly;
             }
             auto lit = add_constraint(p, ci, k);
