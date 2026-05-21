@@ -113,12 +113,12 @@ struct solver::imp {
             m_vars2mon.insert(vars, v);
             for (auto v2 : vars) {
                 auto pv = definitions.get(v2);
+                scale *= scales[v2];
                 if (!p) {
                     p = pv;
                 }
                 else {
                     p = pm.mul(p, pv);
-                    scale *= scales[v2];
                 }
             }
         }
