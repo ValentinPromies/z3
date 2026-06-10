@@ -129,6 +129,7 @@ struct statistics {
     unsigned m_cross_nested_forms = 0;
     unsigned m_grobner_calls = 0;
     unsigned m_grobner_conflicts = 0;
+    unsigned m_check_assignment_calls = 0;
     unsigned m_offset_eqs = 0;
     unsigned m_fixed_eqs = 0;
     unsigned m_dio_calls = 0;
@@ -159,6 +160,7 @@ struct statistics {
         st.update("arith-gomory-cuts", m_gomory_cuts);
         st.update("arith-horner-calls", m_horner_calls);
         st.update("arith-horner-conflicts", m_horner_conflicts);
+        st.update("arith-check-assignment-calls", m_check_assignment_calls);
         st.update("arith-horner-cross-nested-forms", m_cross_nested_forms);
         st.update("arith-grobner-calls", m_grobner_calls);
         st.update("arith-grobner-conflicts", m_grobner_conflicts);
@@ -168,6 +170,7 @@ struct statistics {
         st.update("arith-nla-propagate-bounds", m_nla_propagate_bounds);
         st.update("arith-nla-propagate-eq", m_nla_propagate_eq);
         st.update("arith-nla-lemmas", m_nla_lemmas);
+        st.update("arith-nla-calls", m_nla_calls);
         st.update("arith-nra-calls", m_nra_calls);   
         st.update("arith-bounds-improvements", m_nla_bounds_improvements);
         st.update("arith-dio-calls", m_dio_calls);

@@ -1363,12 +1363,21 @@ lbool core::check(unsigned level) {
             ret = bounded_nlsat();
     }
 
-    if (no_effect() && params().arith_nl_nra_check_assignment() && m_check_assignment_fail_cnt < params().arith_nl_nra_check_assignment_max_fail()) {
-        scoped_limits sl(m_reslim);
-        sl.push_child(&m_nra_lim);
-        ret = m_nra.check_assignment();
-        if (ret != l_true)
+    if (no_effect() && params().arith_nl_nra_check_assignment()) {
+        if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail()) {
             ++m_check_assignment_fail_cnt;
+            if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail() + m_block_check_assignment) {
+                m_check_assignment_fail_cnt = 0;
+                m_block_check_assignment *= 2;
+            }
+        } else {
+            ++lp_settings().stats().m_check_assignment_calls;
+            scoped_limits sl(m_reslim);
+            sl.push_child(&m_nra_lim);
+            ret = m_nra.check_assignment();
+            if (ret != l_true)
+                ++m_check_assignment_fail_cnt;
+        }
     }
 
     if (no_effect() && params().arith_nl_nra() && level >= 2) {
