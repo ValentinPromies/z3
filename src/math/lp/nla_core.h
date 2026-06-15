@@ -114,6 +114,7 @@ class core {
 
     void check_weighted(unsigned sz, std::pair<unsigned, std::function<void(void)>>* checks);
     void add_bounds();
+    void run_check_assignment(lbool& ret);
 
     bool refine_pseudo_linear();
     bool is_pseudo_linear(monic const& m) const;    

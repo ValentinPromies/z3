@@ -1283,6 +1283,23 @@ void core::add_bounds() {
     }    
 }
 
+void core::run_check_assignment(lbool& ret) {
+    if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail()) {
+        ++m_check_assignment_fail_cnt;
+        if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail() + m_block_check_assignment) {
+            m_check_assignment_fail_cnt = 0;
+            m_block_check_assignment *= 2;
+        }
+    } else {
+        ++lp_settings().stats().m_check_assignment_calls;
+        scoped_limits sl(m_reslim);
+        sl.push_child(&m_nra_lim);
+        ret = m_nra.check_assignment();
+        if (ret != l_true)
+            ++m_check_assignment_fail_cnt;
+    }
+}
+
 lbool core::check(unsigned level) {
     lp_settings().stats().m_nla_calls++;
     TRACE(nla_solver, tout << "calls = " << lp_settings().stats().m_nla_calls << "\n";);
@@ -1343,22 +1360,8 @@ lbool core::check(unsigned level) {
     if (no_effect()) 
         m_divisions.check();
     
-    if (no_effect() && params().arith_nl_nra_check_assignment_first()) {
-        if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail()) {
-            ++m_check_assignment_fail_cnt;
-            if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail() + m_block_check_assignment) {
-                m_check_assignment_fail_cnt = 0;
-                m_block_check_assignment *= 2;
-            }
-        } else {
-            ++lp_settings().stats().m_check_assignment_calls;
-            scoped_limits sl(m_reslim);
-            sl.push_child(&m_nra_lim);
-            ret = m_nra.check_assignment();
-            if (ret != l_true)
-                ++m_check_assignment_fail_cnt;
-        }
-    }
+    if (no_effect() && params().arith_nl_nra_check_assignment_first())
+        run_check_assignment(ret);
 
     if (no_effect()) {
         std::function<void(void)> check1 = [&]() { m_order.order_lemma();
@@ -1379,22 +1382,8 @@ lbool core::check(unsigned level) {
             ret = bounded_nlsat();
     }
 
-    if (no_effect() && params().arith_nl_nra_check_assignment_later()) {
-        if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail()) {
-            ++m_check_assignment_fail_cnt;
-            if (m_check_assignment_fail_cnt >= params().arith_nl_nra_check_assignment_max_fail() + m_block_check_assignment) {
-                m_check_assignment_fail_cnt = 0;
-                m_block_check_assignment *= 2;
-            }
-        } else {
-            ++lp_settings().stats().m_check_assignment_calls;
-            scoped_limits sl(m_reslim);
-            sl.push_child(&m_nra_lim);
-            ret = m_nra.check_assignment();
-            if (ret != l_true)
-                ++m_check_assignment_fail_cnt;
-        }
-    }
+    if (no_effect() && params().arith_nl_nra_check_assignment_later())
+        run_check_assignment(ret);
 
     if (no_effect() && params().arith_nl_nra() && level >= 2) {
         scoped_limits sl(m_reslim);
