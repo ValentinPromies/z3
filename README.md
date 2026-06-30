@@ -1,4 +1,21 @@
-# Z3
+# Z3 Fork used for the Publication ``More is Less: Adding Linear Polynomials for Faster CAD Cell Construction''
+
+### Gathered Data
+
+The results from the paper can be found in `results`. To load them e.g. in a Jupyter Notebook, one can import pandas and execute `df = pd.read_csv("results-qfnia.csv", header=[0,1], index_col=0)`.
+
+### Running the Presented Variants
+
+To run the variants used in the paper, simply compile `z3` as described below. Then, each variant can be called by passing different arguments to `z3`.
+
+- `z3-base`: run `./z3 tactic.default_tactic=smt smt.arith.nl.nra_check_assignment_first=false smt.arith.nl.nra_check_assignment_later=false`
+
+- `z3-lc-first`: run `./z3 tactic.default_tactic=smt smt.arith.nl.nra_check_assignment_first=true smt.arith.nl.nra_check_assignment_later=false smt.arith.nl.nra_check_assignment_max_fail=5`
+
+- `z3-lc-later`: run `./z3 tactic.default_tactic=smt smt.arith.nl.nra_check_assignment_first=false smt.arith.nl.nra_check_assignment_later=true smt.arith.nl.nra_check_assignment_max_fail=5`
+
+
+# Z3 (----------- Original README -----------)
 
 Z3 is a theorem prover from Microsoft Research. 
 It is licensed under the [MIT license](LICENSE.txt). Windows binary distributions include [C++ runtime redistributables](https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/)
